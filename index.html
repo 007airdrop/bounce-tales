@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fall Ball - Farcaster Mini App</title>
+    <title>Platform Runner - Farcaster Mini App</title>
     <link rel="manifest" href="/manifest.json">
     <style>
         * {
@@ -30,7 +30,7 @@
             position: relative;
             width: 100%;
             max-width: 400px;
-            height: 700px;
+            height: 600px;
             background: #1a1a2e;
             border-radius: 20px;
             overflow: hidden;
@@ -131,6 +131,18 @@
             font-weight: 600;
         }
         
+        #idle-warning {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(231, 76, 60, 0.9);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            display: none;
+        }
+        
         .hidden {
             display: none !important;
         }
@@ -193,7 +205,7 @@
         
         @media (max-width: 480px) {
             #game-container {
-                height: 600px;
+                height: 550px;
                 max-width: 350px;
             }
             
@@ -215,15 +227,17 @@
         
         <div id="score-display">Score: 0</div>
         <div id="high-score-display">Best: 0</div>
+        <div id="idle-warning">KEEP MOVING!</div>
         
         <!-- Start Screen -->
         <div id="start-screen" class="screen">
-            <h1>Fall Ball</h1>
-            <p>Dodge falling obstacles! Move left/right to survive as long as possible.</p>
+            <h1>Platform Runner</h1>
+            <p>Keep moving to survive! Don't stop or spikes will appear.</p>
+            <p>Avoid obstacles and collect coins.</p>
             <button id="start-btn" class="btn">Start Game</button>
             <button id="leaderboard-btn" class="btn btn-secondary">Leaderboard</button>
             <div class="controls-info">
-                Tap left/right to move • Keyboard: ←/→ or A/D
+                Tap left/right to move • Don't stop moving!
             </div>
         </div>
         
@@ -240,6 +254,7 @@
         <div id="game-over-screen" class="screen hidden">
             <h2>Game Over!</h2>
             <p id="final-score">Your Score: 0</p>
+            <p id="death-reason">You stopped moving!</p>
             <p id="new-high-score" style="color: #4fc3f7; display: none;">🎉 New High Score! 🎉</p>
             <button id="restart-btn" class="btn">Play Again</button>
             <button id="menu-btn" class="btn btn-secondary">Main Menu</button>
@@ -257,29 +272,39 @@
         let canvas, ctx;
         let ball = { 
             x: 200, 
-            y: 100, 
-            radius: 15, 
+            y: 500, 
+            radius: 12, 
             speedX: 0, 
-            speedY: 0, 
             color: '#4fc3f7' 
         };
         
+        let platform = {
+            y: 520,
+            height: 10
+        };
+        
         let obstacles = [];
+        let coins = [];
+        let spikes = [];
         let particles = [];
         let score = 0;
         let highScore = 0;
         let gameRunning = false;
         let keys = {};
-        let gameSpeed = 2;
+        let gameSpeed = 3;
         let obstacleSpawnTimer = 0;
+        let coinSpawnTimer = 0;
+        let idleTimer = 0;
+        let lastMoveTime = 0;
+        let deathReason = "You stopped moving!";
         
-        // Leaderboard data (in real app, this would be from a server)
+        // Leaderboard data
         let leaderboard = [
             { name: "You", score: 0 },
-            { name: "Player2", score: 850 },
-            { name: "Player3", score: 720 },
-            { name: "Player4", score: 680 },
-            { name: "Player5", score: 550 }
+            { name: "ProPlayer", score: 1250 },
+            { name: "Gamer123", score: 980 },
+            { name: "SpeedRun", score: 760 },
+            { name: "Casual", score: 540 }
         ];
 
         // DOM elements
@@ -289,8 +314,10 @@
         const scoreDisplay = document.getElementById('score-display');
         const highScoreDisplay = document.getElementById('high-score-display');
         const finalScore = document.getElementById('final-score');
+        const deathReasonDisplay = document.getElementById('death-reason');
         const newHighScore = document.getElementById('new-high-score');
         const leaderboardList = document.getElementById('leaderboard-list');
+        const idleWarning = document.getElementById('idle-warning');
 
         // Initialize the game
         function init() {
@@ -302,7 +329,7 @@
             canvas.height = canvas.offsetHeight;
             
             // Load high score from localStorage
-            highScore = parseInt(localStorage.getItem('fallBallHighScore')) || 0;
+            highScore = parseInt(localStorage.getItem('platformRunnerHighScore')) || 0;
             highScoreDisplay.textContent = `Best: ${highScore}`;
             
             // Set up event listeners
@@ -313,14 +340,23 @@
             document.getElementById('menu-btn').addEventListener('click', showStartScreen);
             
             // Touch controls
-            document.getElementById('left-btn').addEventListener('touchstart', () => keys['ArrowLeft'] = true);
+            document.getElementById('left-btn').addEventListener('touchstart', () => {
+                keys['ArrowLeft'] = true;
+                lastMoveTime = Date.now();
+            });
             document.getElementById('left-btn').addEventListener('touchend', () => keys['ArrowLeft'] = false);
-            document.getElementById('right-btn').addEventListener('touchstart', () => keys['ArrowRight'] = true);
+            
+            document.getElementById('right-btn').addEventListener('touchstart', () => {
+                keys['ArrowRight'] = true;
+                lastMoveTime = Date.now();
+            });
             document.getElementById('right-btn').addEventListener('touchend', () => keys['ArrowRight'] = false);
             
             // Keyboard controls
             window.addEventListener('keydown', (e) => {
                 keys[e.key] = true;
+                lastMoveTime = Date.now();
+                
                 // R key to restart
                 if (e.key === 'r' || e.key === 'R') {
                     restartGame();
@@ -347,6 +383,7 @@
             leaderboardScreen.classList.add('hidden');
             gameOverScreen.classList.add('hidden');
             gameRunning = false;
+            idleWarning.style.display = 'none';
         }
 
         function showLeaderboard() {
@@ -376,6 +413,7 @@
             startScreen.classList.add('hidden');
             resetGame();
             gameRunning = true;
+            lastMoveTime = Date.now();
             gameLoop();
         }
 
@@ -383,22 +421,27 @@
             gameOverScreen.classList.add('hidden');
             resetGame();
             gameRunning = true;
+            lastMoveTime = Date.now();
             gameLoop();
         }
 
         function resetGame() {
             ball.x = canvas.width / 2;
-            ball.y = 100;
+            ball.y = 500;
             ball.speedX = 0;
-            ball.speedY = 0;
             
             obstacles = [];
+            coins = [];
+            spikes = [];
             particles = [];
             score = 0;
-            gameSpeed = 2;
+            gameSpeed = 3;
             obstacleSpawnTimer = 0;
+            coinSpawnTimer = 0;
+            idleTimer = 0;
             
             updateDisplays();
+            idleWarning.style.display = 'none';
         }
 
         function updateDisplays() {
@@ -419,10 +462,16 @@
             // Update game state
             updateBall();
             updateObstacles();
+            updateCoins();
+            updateSpikes();
             updateParticles();
+            updateIdleTimer();
             
             // Draw game objects
+            drawPlatform();
             drawObstacles();
+            drawCoins();
+            drawSpikes();
             drawParticles();
             drawBall();
             
@@ -430,7 +479,7 @@
             checkCollisions();
             
             // Increase difficulty over time
-            gameSpeed = 2 + Math.floor(score / 500);
+            gameSpeed = 3 + Math.floor(score / 500);
             
             // Continue game loop
             requestAnimationFrame(gameLoop);
@@ -455,32 +504,33 @@
                 ctx.lineTo(x, canvas.height);
                 ctx.stroke();
             }
+        }
+
+        function drawPlatform() {
+            ctx.fillStyle = '#3498db';
+            ctx.fillRect(0, platform.y, canvas.width, platform.height);
             
-            // Horizontal lines
-            for (let y = 0; y < canvas.height; y += 50) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
+            // Platform pattern
+            ctx.fillStyle = '#2980b9';
+            for (let x = 0; x < canvas.width; x += 20) {
+                ctx.fillRect(x, platform.y, 10, platform.height);
             }
         }
 
         function updateBall() {
-            // Apply gravity (falling down)
-            ball.speedY += 0.1;
-            
             // Handle controls
             if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
                 ball.speedX = -5;
+                lastMoveTime = Date.now();
             } else if (keys['ArrowRight'] || keys['d'] || keys['D']) {
                 ball.speedX = 5;
+                lastMoveTime = Date.now();
             } else {
                 ball.speedX *= 0.9; // Friction
             }
             
             // Update position
             ball.x += ball.speedX;
-            ball.y += ball.speedY;
             
             // Boundary checks
             if (ball.x - ball.radius < 0) {
@@ -492,15 +542,14 @@
                 ball.speedX *= -0.5;
             }
             
-            // Score increases as you survive longer
-            score += 1;
-            updateDisplays();
+            // Keep ball on platform
+            ball.y = platform.y - ball.radius;
         }
 
         function updateObstacles() {
             // Spawn new obstacles
             obstacleSpawnTimer++;
-            if (obstacleSpawnTimer > 60 - gameSpeed * 5) {
+            if (obstacleSpawnTimer > 90 - gameSpeed * 5) {
                 spawnObstacle();
                 obstacleSpawnTimer = 0;
             }
@@ -509,35 +558,32 @@
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const obstacle = obstacles[i];
                 
-                // Move obstacle down
-                obstacle.y += gameSpeed;
+                // Move obstacle left
+                obstacle.x -= gameSpeed;
                 
                 // Remove if off screen
-                if (obstacle.y > canvas.height + 100) {
+                if (obstacle.x + obstacle.width < 0) {
                     obstacles.splice(i, 1);
+                    score += 10;
+                    updateDisplays();
                 }
             }
         }
 
         function spawnObstacle() {
-            const types = ['circle', 'rectangle', 'triangle'];
+            const types = ['rectangle', 'triangle', 'circle'];
             const type = types[Math.floor(Math.random() * types.length)];
             
             const obstacle = {
-                x: Math.random() * (canvas.width - 100) + 50,
-                y: -50,
-                width: 40 + Math.random() * 60,
-                height: 40 + Math.random() * 60,
+                x: canvas.width,
+                y: platform.y - 30,
+                width: 30 + Math.random() * 40,
+                height: 30 + Math.random() * 40,
                 type: type,
-                color: getRandomColor()
+                color: '#e74c3c'
             };
             
             obstacles.push(obstacle);
-        }
-
-        function getRandomColor() {
-            const colors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'];
-            return colors[Math.floor(Math.random() * colors.length)];
         }
 
         function drawObstacles() {
@@ -545,16 +591,10 @@
                 ctx.fillStyle = obstacle.color;
                 
                 switch (obstacle.type) {
-                    case 'circle':
-                        ctx.beginPath();
-                        ctx.arc(obstacle.x, obstacle.y, obstacle.width / 2, 0, Math.PI * 2);
-                        ctx.fill();
-                        break;
-                        
                     case 'rectangle':
                         ctx.fillRect(
-                            obstacle.x - obstacle.width / 2,
-                            obstacle.y - obstacle.height / 2,
+                            obstacle.x,
+                            obstacle.y - obstacle.height,
                             obstacle.width,
                             obstacle.height
                         );
@@ -562,19 +602,130 @@
                         
                     case 'triangle':
                         ctx.beginPath();
-                        ctx.moveTo(obstacle.x, obstacle.y - obstacle.height / 2);
-                        ctx.lineTo(obstacle.x - obstacle.width / 2, obstacle.y + obstacle.height / 2);
-                        ctx.lineTo(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
+                        ctx.moveTo(obstacle.x, obstacle.y);
+                        ctx.lineTo(obstacle.x + obstacle.width, obstacle.y);
+                        ctx.lineTo(obstacle.x + obstacle.width / 2, obstacle.y - obstacle.height);
                         ctx.closePath();
                         ctx.fill();
                         break;
+                        
+                    case 'circle':
+                        ctx.beginPath();
+                        ctx.arc(
+                            obstacle.x + obstacle.width / 2,
+                            obstacle.y - obstacle.height / 2,
+                            obstacle.width / 2,
+                            0,
+                            Math.PI * 2
+                        );
+                        ctx.fill();
+                        break;
                 }
+            });
+        }
+
+        function updateCoins() {
+            // Spawn new coins
+            coinSpawnTimer++;
+            if (coinSpawnTimer > 120 - gameSpeed * 5) {
+                spawnCoin();
+                coinSpawnTimer = 0;
+            }
+            
+            // Update existing coins
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const coin = coins[i];
                 
-                // Add glow effect
-                ctx.shadowColor = obstacle.color;
-                ctx.shadowBlur = 20;
+                // Move coin left
+                coin.x -= gameSpeed;
+                
+                // Remove if off screen
+                if (coin.x + coin.radius < 0) {
+                    coins.splice(i, 1);
+                }
+            }
+        }
+
+        function spawnCoin() {
+            const coin = {
+                x: canvas.width,
+                y: platform.y - 60,
+                radius: 8,
+                color: '#f1c40f'
+            };
+            
+            coins.push(coin);
+        }
+
+        function drawCoins() {
+            coins.forEach(coin => {
+                ctx.fillStyle = coin.color;
+                ctx.beginPath();
+                ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.shadowBlur = 0;
+                
+                // Coin shine
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.beginPath();
+                ctx.arc(coin.x - 3, coin.y - 3, coin.radius / 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function updateIdleTimer() {
+            const currentTime = Date.now();
+            idleTimer = currentTime - lastMoveTime;
+            
+            // Show warning after 1.5 seconds of inactivity
+            if (idleTimer > 1500) {
+                idleWarning.style.display = 'block';
+                
+                // Spawn spikes after 3 seconds of inactivity
+                if (idleTimer > 3000) {
+                    spawnSpike();
+                    deathReason = "You stopped moving!";
+                    gameOver();
+                }
+            } else {
+                idleWarning.style.display = 'none';
+            }
+        }
+
+        function updateSpikes() {
+            // Update existing spikes
+            spikes.forEach(spike => {
+                spike.height += 2;
+                
+                if (spike.height > 100) {
+                    spike.height = 100;
+                }
+            });
+        }
+
+        function spawnSpike() {
+            const spike = {
+                x: ball.x,
+                y: platform.y,
+                width: 10,
+                height: 0,
+                color: '#e74c3c'
+            };
+            
+            spikes.push(spike);
+            createParticles(ball.x, platform.y, '#e74c3c', 8);
+        }
+
+        function drawSpikes() {
+            spikes.forEach(spike => {
+                ctx.fillStyle = spike.color;
+                
+                // Draw spike as a triangle
+                ctx.beginPath();
+                ctx.moveTo(spike.x, spike.y);
+                ctx.lineTo(spike.x - spike.width, spike.y - spike.height);
+                ctx.lineTo(spike.x + spike.width, spike.y - spike.height);
+                ctx.closePath();
+                ctx.fill();
             });
         }
 
@@ -582,12 +733,12 @@
             // Ball shadow
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.beginPath();
-            ctx.arc(ball.x, ball.y + 5, ball.radius, 0, Math.PI * 2);
+            ctx.arc(ball.x, ball.y + 3, ball.radius, 0, Math.PI * 2);
             ctx.fill();
             
             // Main ball
             const gradient = ctx.createRadialGradient(
-                ball.x - 5, ball.y - 5, 1,
+                ball.x - 4, ball.y - 4, 1,
                 ball.x, ball.y, ball.radius
             );
             gradient.addColorStop(0, '#ffffff');
@@ -602,7 +753,7 @@
             // Ball highlight
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             ctx.beginPath();
-            ctx.arc(ball.x - 5, ball.y - 5, ball.radius / 3, 0, Math.PI * 2);
+            ctx.arc(ball.x - 4, ball.y - 4, ball.radius / 3, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -637,63 +788,89 @@
                     y: y,
                     radius: Math.random() * 3 + 1,
                     color: color,
-                    vx: (Math.random() - 0.5) * 8,
-                    vy: (Math.random() - 0.5) * 8,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
                     alpha: 1
                 });
             }
         }
 
         function checkCollisions() {
-            // Check if ball hits bottom
-            if (ball.y + ball.radius > canvas.height) {
-                createParticles(ball.x, ball.y, ball.color, 20);
-                gameOver();
-                return;
-            }
-            
-            // Check collisions with obstacles
+            // Check obstacle collisions
             for (let i = 0; i < obstacles.length; i++) {
                 const obstacle = obstacles[i];
                 let collision = false;
                 
                 switch (obstacle.type) {
-                    case 'circle':
-                        const dx = ball.x - obstacle.x;
-                        const dy = ball.y - obstacle.y;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        collision = distance < ball.radius + obstacle.width / 2;
-                        break;
-                        
                     case 'rectangle':
                         collision = (
-                            ball.x + ball.radius > obstacle.x - obstacle.width / 2 &&
-                            ball.x - ball.radius < obstacle.x + obstacle.width / 2 &&
-                            ball.y + ball.radius > obstacle.y - obstacle.height / 2 &&
-                            ball.y - ball.radius < obstacle.y + obstacle.height / 2
+                            ball.x + ball.radius > obstacle.x &&
+                            ball.x - ball.radius < obstacle.x + obstacle.width &&
+                            ball.y + ball.radius > obstacle.y - obstacle.height &&
+                            ball.y - ball.radius < obstacle.y
                         );
                         break;
                         
                     case 'triangle':
                         // Simplified triangle collision
-                        const triTop = obstacle.y - obstacle.height / 2;
-                        const triBottom = obstacle.y + obstacle.height / 2;
-                        const triLeft = obstacle.x - obstacle.width / 2;
-                        const triRight = obstacle.x + obstacle.width / 2;
+                        const triLeft = obstacle.x;
+                        const triRight = obstacle.x + obstacle.width;
+                        const triTop = obstacle.y - obstacle.height;
                         
                         collision = (
                             ball.y + ball.radius > triTop &&
                             ball.x + ball.radius > triLeft &&
-                            ball.x - ball.radius < triRight &&
-                            ball.y - ball.radius < triBottom
+                            ball.x - ball.radius < triRight
                         );
+                        break;
+                        
+                    case 'circle':
+                        const dx = ball.x - (obstacle.x + obstacle.width / 2);
+                        const dy = ball.y - (obstacle.y - obstacle.height / 2);
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        collision = distance < ball.radius + obstacle.width / 2;
                         break;
                 }
                 
                 if (collision) {
                     createParticles(ball.x, ball.y, obstacle.color, 15);
+                    deathReason = "You hit an obstacle!";
                     gameOver();
                     return;
+                }
+            }
+            
+            // Check coin collisions
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const coin = coins[i];
+                const dx = ball.x - coin.x;
+                const dy = ball.y - coin.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < ball.radius + coin.radius) {
+                    coins.splice(i, 1);
+                    score += 50;
+                    updateDisplays();
+                    createParticles(coin.x, coin.y, coin.color, 8);
+                }
+            }
+            
+            // Check spike collisions
+            for (let i = 0; i < spikes.length; i++) {
+                const spike = spikes[i];
+                
+                // Simple spike collision (triangle)
+                if (spike.height > 0) {
+                    const spikeTop = spike.y - spike.height;
+                    
+                    if (ball.y - ball.radius < spikeTop + 20) {
+                        if (ball.x > spike.x - spike.width && ball.x < spike.x + spike.width) {
+                            createParticles(ball.x, ball.y, spike.color, 15);
+                            deathReason = "You were impaled by a spike!";
+                            gameOver();
+                            return;
+                        }
+                    }
                 }
             }
         }
@@ -704,7 +881,7 @@
             // Update high score
             if (score > highScore) {
                 highScore = score;
-                localStorage.setItem('fallBallHighScore', highScore);
+                localStorage.setItem('platformRunnerHighScore', highScore);
                 newHighScore.style.display = 'block';
                 
                 // Update leaderboard with player's score
@@ -714,7 +891,9 @@
             }
             
             finalScore.textContent = `Your Score: ${score}`;
+            deathReasonDisplay.textContent = deathReason;
             gameOverScreen.classList.remove('hidden');
+            idleWarning.style.display = 'none';
         }
 
         // Initialize the game when page loads
