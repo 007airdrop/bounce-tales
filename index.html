@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bounce Tales — Retro Rebound</title>
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    // Farcaster SDK ready call
+    window.onload = () => {
+      if (window.farcaster && window.farcaster.actions) {
+        window.farcaster.actions.ready();
+      }
+    };
+  </script>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="menu">
+    <h1>Nokia Bounce</h1>
+    <p>Tap to bounce and steer the ball. Avoid spikes, collect rings!</p>
+    <button id="startButton">Tap to Start</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = 360;
+    canvas.height = 640;
+
+    const ball = { x: 180, y: 500, r: 15, vy: -8, color: "orange" };
+    const gravity = 0.4;
+    const bounce = -8;
+    let score = 0;
+    let started = false;
+
+    document.getElementById("startButton").onclick = () => {
+      document.getElementById("menu").style.display = "none";
+      started = true;
+      gameLoop();
+    };
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      ctx.fillStyle = ball.color;
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function update() {
+      ball.vy += gravity;
+      ball.y += ball.vy;
+      if (ball.y + ball.r > canvas.height) {
+        ball.vy = bounce;
+      }
+      if (ball.y - ball.r < 0) {
+        ball.vy = bounce;
+      }
+    }
+
+    function drawScore() {
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Score: " + score, 10, 30);
+    }
+
+    function gameLoop() {
+      if (!started) return;
+      ctx.fillStyle = "#001b2e";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawBall();
+      drawScore();
+      update();
+      requestAnimationFrame(gameLoop);
+    }
+  </script>
+</body>
+</html>
