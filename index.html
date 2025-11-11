@@ -1,80 +1,267 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bounce Tales — Retro Rebound</title>
-  <link rel="stylesheet" href="style.css" />
-  <script>
-    // Farcaster SDK ready call
-    window.onload = () => {
-      if (window.farcaster && window.farcaster.actions) {
-        window.farcaster.actions.ready();
-      }
-    };
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bounce Tales Mini</title>
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+        #game-container { position: relative; width: 100%; max-width: 400px; height: 600px; background: #1a1a2e; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        #game-canvas { display: block; width: 100%; height: 100%; }
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(26, 26, 46, 0.95); z-index: 10; padding: 30px; text-align: center; }
+        h1 { font-size: 2.5rem; margin-bottom: 15px; color: #4fc3f7; }
+        .btn { background: linear-gradient(45deg, #4dabf7, #3a7bd5); color: white; border: none; padding: 15px 35px; font-size: 1.2rem; border-radius: 50px; cursor: pointer; margin: 10px; }
+        #score-display, #level-display { position: absolute; top: 20px; background: rgba(0, 0, 0, 0.6); padding: 10px 20px; border-radius: 25px; z-index: 5; font-weight: 600; }
+        #score-display { left: 20px; }
+        #level-display { right: 20px; }
+        .hidden { display: none !important; }
+        .mobile-controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 30px; }
+        .control-btn { width: 70px; height: 70px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3); display: flex; align-items: center; justify-content: center; font-size: 28px; color: white; }
+    </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="score-display">Score: 0</div>
+        <div id="level-display">Level: 1</div>
+        
+        <div id="start-screen" class="screen">
+            <h1>Bounce Tales</h1>
+            <p>Tap to bounce and steer the ball to the goal. Avoid spikes.</p>
+            <p>Collect rings for points!</p>
+            <button id="start-btn" class="btn">Tap to Start</button>
+        </div>
+        
+        <div id="game-over-screen" class="screen hidden">
+            <h2>Game Over</h2>
+            <p id="final-score">Your score: 0</p>
+            <button id="restart-btn" class="btn">Play Again</button>
+        </div>
+        
+        <div class="mobile-controls">
+            <div class="control-btn" id="left-btn">←</div>
+            <div class="control-btn" id="right-btn">→</div>
+        </div>
+    </div>
 
-  <div id="menu">
-    <h1>Nokia Bounce</h1>
-    <p>Tap to bounce and steer the ball. Avoid spikes, collect rings!</p>
-    <button id="startButton">Tap to Start</button>
-  </div>
+    <script>
+        // Game variables
+        let canvas, ctx;
+        let ball = { x: 50, y: 300, radius: 15, speedX: 0, speedY: 0, color: '#4fc3f7' };
+        let gravity = 0.5;
+        let platforms = [], obstacles = [], rings = [], goal = {};
+        let score = 0, level = 1, gameRunning = false, keys = {};
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = 360;
-    canvas.height = 640;
+        function init() {
+            canvas = document.getElementById('game-canvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
 
-    const ball = { x: 180, y: 500, r: 15, vy: -8, color: "orange" };
-    const gravity = 0.4;
-    const bounce = -8;
-    let score = 0;
-    let started = false;
+            // Event listeners
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('restart-btn').addEventListener('click', restartGame);
+            
+            // Touch controls
+            document.getElementById('left-btn').addEventListener('touchstart', () => keys['ArrowLeft'] = true);
+            document.getElementById('left-btn').addEventListener('touchend', () => keys['ArrowLeft'] = false);
+            document.getElementById('right-btn').addEventListener('touchstart', () => keys['ArrowRight'] = true);
+            document.getElementById('right-btn').addEventListener('touchend', () => keys['ArrowRight'] = false);
+            
+            // Keyboard controls
+            window.addEventListener('keydown', (e) => keys[e.key] = true);
+            window.addEventListener('keyup', (e) => keys[e.key] = false);
+            
+            showStartScreen();
+        }
 
-    document.getElementById("startButton").onclick = () => {
-      document.getElementById("menu").style.display = "none";
-      started = true;
-      gameLoop();
-    };
+        function showStartScreen() {
+            document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            gameRunning = false;
+        }
 
-    function drawBall() {
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-      ctx.fillStyle = ball.color;
-      ctx.fill();
-      ctx.closePath();
-    }
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            score = 0; level = 1;
+            updateDisplays();
+            setupLevel();
+            gameRunning = true;
+            gameLoop();
+        }
 
-    function update() {
-      ball.vy += gravity;
-      ball.y += ball.vy;
-      if (ball.y + ball.r > canvas.height) {
-        ball.vy = bounce;
-      }
-      if (ball.y - ball.r < 0) {
-        ball.vy = bounce;
-      }
-    }
+        function restartGame() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            score = 0; level = 1;
+            updateDisplays();
+            setupLevel();
+            gameRunning = true;
+            gameLoop();
+        }
 
-    function drawScore() {
-      ctx.fillStyle = "white";
-      ctx.font = "20px Arial";
-      ctx.fillText("Score: " + score, 10, 30);
-    }
+        function setupLevel() {
+            ball.x = 50; ball.y = canvas.height - 100; ball.speedX = 0; ball.speedY = 0;
+            platforms = []; obstacles = []; rings = [];
+            
+            platforms.push({x: 0, y: canvas.height - 30, width: canvas.width, height: 30});
+            platforms.push({x: 100, y: 400, width: 150, height: 20});
+            platforms.push({x: 300, y: 350, width: 150, height: 20});
+            
+            obstacles.push({x: 150, y: 100, width: 40, height: 40, type: 'spike', speedY: 2});
+            
+            rings.push({x: 150, y: 370, radius: 12, collected: false});
+            rings.push({x: 350, y: 320, radius: 12, collected: false});
+            
+            goal = {x: canvas.width - 80, y: 200, width: 60, height: 60};
+        }
 
-    function gameLoop() {
-      if (!started) return;
-      ctx.fillStyle = "#001b2e";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawBall();
-      drawScore();
-      update();
-      requestAnimationFrame(gameLoop);
-    }
-  </script>
+        function updateDisplays() {
+            document.getElementById('score-display').textContent = `Score: ${score}`;
+            document.getElementById('level-display').textContent = `Level: ${level}`;
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            updateBall();
+            updateObstacles();
+            drawPlatforms();
+            drawObstacles();
+            drawRings();
+            drawGoal();
+            drawBall();
+            
+            checkPlatformCollisions();
+            checkObstacleCollisions();
+            checkRingCollisions();
+            checkGoalCollision();
+            
+            if (ball.y > canvas.height) gameOver();
+            else requestAnimationFrame(gameLoop);
+        }
+
+        function drawBackground() {
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#0a0e29'); gradient.addColorStop(1, '#1a1f4b');
+            ctx.fillStyle = gradient; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function updateBall() {
+            ball.speedY += gravity;
+            ball.speedX *= 0.9;
+            if (keys['ArrowLeft'] || keys['a']) ball.speedX = -5;
+            if (keys['ArrowRight'] || keys['d']) ball.speedX = 5;
+            ball.x += ball.speedX; ball.y += ball.speedY;
+            if (ball.x - ball.radius < 0) ball.x = ball.radius;
+            if (ball.x + ball.radius > canvas.width) ball.x = canvas.width - ball.radius;
+        }
+
+        function updateObstacles() {
+            obstacles.forEach(obstacle => {
+                obstacle.y += obstacle.speedY;
+                if (obstacle.y > canvas.height) {
+                    obstacle.y = -50;
+                    obstacle.x = Math.random() * (canvas.width - obstacle.width);
+                }
+            });
+        }
+
+        function drawBall() {
+            ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(ball.x-5, ball.y-5, 1, ball.x, ball.y, ball.radius);
+            gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(0.5, ball.color); gradient.addColorStop(1, '#1a5a92');
+            ctx.fillStyle = gradient; ctx.fill();
+        }
+
+        function drawPlatforms() {
+            ctx.fillStyle = '#3a7bd5';
+            platforms.forEach(platform => ctx.fillRect(platform.x, platform.y, platform.width, platform.height));
+        }
+
+        function drawObstacles() {
+            obstacles.forEach(obstacle => {
+                ctx.fillStyle = '#e74c3c';
+                ctx.beginPath();
+                ctx.moveTo(obstacle.x, obstacle.y + obstacle.height);
+                ctx.lineTo(obstacle.x + obstacle.width / 2, obstacle.y);
+                ctx.lineTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height);
+                ctx.closePath(); ctx.fill();
+            });
+        }
+
+        function drawRings() {
+            rings.forEach(ring => {
+                if (!ring.collected) {
+                    ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2); ctx.stroke();
+                }
+            });
+        }
+
+        function drawGoal() {
+            ctx.fillStyle = '#2ecc71';
+            ctx.fillRect(goal.x, goal.y, goal.width, goal.height);
+            ctx.fillStyle = 'white'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+            ctx.fillText('GOAL', goal.x + goal.width/2, goal.y + goal.height/2 + 5);
+        }
+
+        function checkPlatformCollisions() {
+            let onPlatform = false;
+            platforms.forEach(platform => {
+                if (ball.x + ball.radius > platform.x && ball.x - ball.radius < platform.x + platform.width &&
+                    ball.y + ball.radius > platform.y && ball.y - ball.radius < platform.y + platform.height && ball.speedY > 0) {
+                    ball.y = platform.y - ball.radius; ball.speedY = 0; onPlatform = true;
+                }
+            });
+            if (!onPlatform && ball.speedY === 0) ball.speedY = 0.1;
+        }
+
+        function checkObstacleCollisions() {
+            obstacles.forEach(obstacle => {
+                const dx = Math.abs(ball.x - (obstacle.x + obstacle.width/2));
+                const dy = Math.abs(ball.y - (obstacle.y + obstacle.height/2));
+                if (dx < obstacle.width/2 + ball.radius && dy < obstacle.height/2 + ball.radius) {
+                    gameOver();
+                }
+            });
+        }
+
+        function checkRingCollisions() {
+            rings.forEach(ring => {
+                if (!ring.collected && Math.sqrt((ball.x - ring.x) ** 2 + (ball.y - ring.y) ** 2) < ball.radius + ring.radius) {
+                    ring.collected = true; score += 50; updateDisplays();
+                }
+            });
+        }
+
+        function checkGoalCollision() {
+            if (ball.x + ball.radius > goal.x && ball.x - ball.radius < goal.x + goal.width &&
+                ball.y + ball.radius > goal.y && ball.y - ball.radius < goal.y + goal.height) {
+                levelComplete();
+            }
+        }
+
+        function levelComplete() {
+            gameRunning = false;
+            score += 500;
+            setTimeout(() => {
+                if (level < 3) { level++; setupLevel(); gameRunning = true; gameLoop(); }
+                else { document.getElementById('total-score').textContent = `Total Score: ${score}`;
+                      document.getElementById('win-screen').classList.remove('hidden'); }
+            }, 1000);
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('final-score').textContent = `Your score: ${score}`;
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        window.onload = init;
+    </script>
 </body>
 </html>
