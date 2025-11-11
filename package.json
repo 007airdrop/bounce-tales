@@ -1,7 +1,7 @@
 {
-  "name": "bounce-tales-game",
+  "name": "fall-ball-game",
   "version": "1.0.0",
-  "description": "A fun bounce game for Farcaster",
+  "description": "Fall Ball dodge game for Farcaster",
   "scripts": {
     "build": "echo 'Building static site' && mkdir -p public && cp index.html manifest.json public/ || exit 0"
   },
