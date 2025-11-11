@@ -1,7 +1,7 @@
 {
-  "name": "fall-ball-game",
+  "name": "platform-runner",
   "version": "1.0.0",
-  "description": "Fall Ball dodge game for Farcaster",
+  "description": "Platform runner game for Farcaster",
   "scripts": {
     "build": "echo 'Building static site' && mkdir -p public && cp index.html manifest.json public/ || exit 0"
   },
