@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "fall-ball-game",
+  "name": "platform-runner",
   "builds": [
     {
       "src": "package.json",
