@@ -3,43 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bounce Tales Mini</title>
+    <title>Fall Ball - Farcaster Mini App</title>
     <link rel="manifest" href="/manifest.json">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
-        #game-container { position: relative; width: 100%; max-width: 400px; height: 600px; background: #1a1a2e; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-        #game-canvas { display: block; width: 100%; height: 100%; }
-        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(26, 26, 46, 0.95); z-index: 10; padding: 30px; text-align: center; }
-        h1 { font-size: 2.5rem; margin-bottom: 15px; color: #4fc3f7; }
-        .btn { background: linear-gradient(45deg, #4dabf7, #3a7bd5); color: white; border: none; padding: 15px 35px; font-size: 1.2rem; border-radius: 50px; cursor: pointer; margin: 10px; }
-        #score-display, #level-display { position: absolute; top: 20px; background: rgba(0, 0, 0, 0.6); padding: 10px 20px; border-radius: 25px; z-index: 5; font-weight: 600; }
-        #score-display { left: 20px; }
-        #level-display { right: 20px; }
-        .hidden { display: none !important; }
-        .mobile-controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 30px; }
-        .control-btn { width: 70px; height: 70px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3); display: flex; align-items: center; justify-content: center; font-size: 28px; color: white; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 700px;
+            background: #1a1a2e;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        
+        #game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(26, 26, 46, 0.95);
+            z-index: 10;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #4fc3f7;
+            text-shadow: 0 2px 10px rgba(79, 195, 247, 0.5);
+        }
+        
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #4dabf7;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            color: #b3b3cc;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #4dabf7, #3a7bd5);
+            color: white;
+            border: none;
+            padding: 15px 35px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(58, 123, 213, 0.4);
+            font-weight: 600;
+            width: 200px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(58, 123, 213, 0.6);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #495057);
+        }
+        
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 1.3rem;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 25px;
+            z-index: 5;
+            font-weight: 600;
+        }
+        
+        #high-score-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.3rem;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 25px;
+            z-index: 5;
+            font-weight: 600;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .mobile-controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 5;
+        }
+        
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: white;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+        }
+        
+        .leaderboard {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+        
+        .player-name {
+            font-weight: 600;
+        }
+        
+        .player-score {
+            color: #4fc3f7;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 480px) {
+            #game-container {
+                height: 600px;
+                max-width: 350px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .control-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
+        
         <div id="score-display">Score: 0</div>
-        <div id="level-display">Level: 1</div>
+        <div id="high-score-display">Best: 0</div>
         
+        <!-- Start Screen -->
         <div id="start-screen" class="screen">
-            <h1>Bounce Tales</h1>
-            <p>Tap to bounce and steer the ball to the goal. Avoid spikes.</p>
-            <p>Collect rings for points!</p>
-            <button id="start-btn" class="btn">Tap to Start</button>
+            <h1>Fall Ball</h1>
+            <p>Dodge falling obstacles! Move left/right to survive as long as possible.</p>
+            <button id="start-btn" class="btn">Start Game</button>
+            <button id="leaderboard-btn" class="btn btn-secondary">Leaderboard</button>
+            <div class="controls-info">
+                Tap left/right to move • Keyboard: ←/→ or A/D
+            </div>
         </div>
         
+        <!-- Leaderboard Screen -->
+        <div id="leaderboard-screen" class="screen hidden">
+            <h2>🏆 Leaderboard</h2>
+            <div class="leaderboard" id="leaderboard-list">
+                <!-- Leaderboard items will be added here -->
+            </div>
+            <button id="back-btn" class="btn">Back to Menu</button>
+        </div>
+        
+        <!-- Game Over Screen -->
         <div id="game-over-screen" class="screen hidden">
-            <h2>Game Over</h2>
-            <p id="final-score">Your score: 0</p>
+            <h2>Game Over!</h2>
+            <p id="final-score">Your Score: 0</p>
+            <p id="new-high-score" style="color: #4fc3f7; display: none;">🎉 New High Score! 🎉</p>
             <button id="restart-btn" class="btn">Play Again</button>
+            <button id="menu-btn" class="btn btn-secondary">Main Menu</button>
         </div>
         
+        <!-- Mobile Controls -->
         <div class="mobile-controls">
             <div class="control-btn" id="left-btn">←</div>
             <div class="control-btn" id="right-btn">→</div>
@@ -49,20 +255,62 @@
     <script>
         // Game variables
         let canvas, ctx;
-        let ball = { x: 50, y: 300, radius: 15, speedX: 0, speedY: 0, color: '#4fc3f7' };
-        let gravity = 0.5;
-        let platforms = [], obstacles = [], rings = [], goal = {};
-        let score = 0, level = 1, gameRunning = false, keys = {};
+        let ball = { 
+            x: 200, 
+            y: 100, 
+            radius: 15, 
+            speedX: 0, 
+            speedY: 0, 
+            color: '#4fc3f7' 
+        };
+        
+        let obstacles = [];
+        let particles = [];
+        let score = 0;
+        let highScore = 0;
+        let gameRunning = false;
+        let keys = {};
+        let gameSpeed = 2;
+        let obstacleSpawnTimer = 0;
+        
+        // Leaderboard data (in real app, this would be from a server)
+        let leaderboard = [
+            { name: "You", score: 0 },
+            { name: "Player2", score: 850 },
+            { name: "Player3", score: 720 },
+            { name: "Player4", score: 680 },
+            { name: "Player5", score: 550 }
+        ];
 
+        // DOM elements
+        const startScreen = document.getElementById('start-screen');
+        const leaderboardScreen = document.getElementById('leaderboard-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const scoreDisplay = document.getElementById('score-display');
+        const highScoreDisplay = document.getElementById('high-score-display');
+        const finalScore = document.getElementById('final-score');
+        const newHighScore = document.getElementById('new-high-score');
+        const leaderboardList = document.getElementById('leaderboard-list');
+
+        // Initialize the game
         function init() {
             canvas = document.getElementById('game-canvas');
             ctx = canvas.getContext('2d');
+            
+            // Set canvas size
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
-
-            // Event listeners
+            
+            // Load high score from localStorage
+            highScore = parseInt(localStorage.getItem('fallBallHighScore')) || 0;
+            highScoreDisplay.textContent = `Best: ${highScore}`;
+            
+            // Set up event listeners
             document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('leaderboard-btn').addEventListener('click', showLeaderboard);
+            document.getElementById('back-btn').addEventListener('click', showStartScreen);
             document.getElementById('restart-btn').addEventListener('click', restartGame);
+            document.getElementById('menu-btn').addEventListener('click', showStartScreen);
             
             // Touch controls
             document.getElementById('left-btn').addEventListener('touchstart', () => keys['ArrowLeft'] = true);
@@ -71,196 +319,405 @@
             document.getElementById('right-btn').addEventListener('touchend', () => keys['ArrowRight'] = false);
             
             // Keyboard controls
-            window.addEventListener('keydown', (e) => keys[e.key] = true);
-            window.addEventListener('keyup', (e) => keys[e.key] = false);
+            window.addEventListener('keydown', (e) => {
+                keys[e.key] = true;
+                // R key to restart
+                if (e.key === 'r' || e.key === 'R') {
+                    restartGame();
+                }
+            });
             
+            window.addEventListener('keyup', (e) => {
+                keys[e.key] = false;
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            });
+            
+            // Show start screen
             showStartScreen();
+            updateLeaderboard();
         }
 
         function showStartScreen() {
-            document.getElementById('start-screen').classList.remove('hidden');
-            document.getElementById('game-over-screen').classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            leaderboardScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
             gameRunning = false;
         }
 
+        function showLeaderboard() {
+            startScreen.classList.add('hidden');
+            leaderboardScreen.classList.remove('hidden');
+            updateLeaderboard();
+        }
+
+        function updateLeaderboard() {
+            leaderboardList.innerHTML = '';
+            
+            // Sort leaderboard by score
+            const sortedLeaderboard = [...leaderboard].sort((a, b) => b.score - a.score);
+            
+            sortedLeaderboard.forEach((player, index) => {
+                const item = document.createElement('div');
+                item.className = 'leaderboard-item';
+                item.innerHTML = `
+                    <span class="player-name">${index + 1}. ${player.name}</span>
+                    <span class="player-score">${player.score}</span>
+                `;
+                leaderboardList.appendChild(item);
+            });
+        }
+
         function startGame() {
-            document.getElementById('start-screen').classList.add('hidden');
-            score = 0; level = 1;
-            updateDisplays();
-            setupLevel();
+            startScreen.classList.add('hidden');
+            resetGame();
             gameRunning = true;
             gameLoop();
         }
 
         function restartGame() {
-            document.getElementById('game-over-screen').classList.add('hidden');
-            score = 0; level = 1;
-            updateDisplays();
-            setupLevel();
+            gameOverScreen.classList.add('hidden');
+            resetGame();
             gameRunning = true;
             gameLoop();
         }
 
-        function setupLevel() {
-            ball.x = 50; ball.y = canvas.height - 100; ball.speedX = 0; ball.speedY = 0;
-            platforms = []; obstacles = []; rings = [];
+        function resetGame() {
+            ball.x = canvas.width / 2;
+            ball.y = 100;
+            ball.speedX = 0;
+            ball.speedY = 0;
             
-            platforms.push({x: 0, y: canvas.height - 30, width: canvas.width, height: 30});
-            platforms.push({x: 100, y: 400, width: 150, height: 20});
-            platforms.push({x: 300, y: 350, width: 150, height: 20});
+            obstacles = [];
+            particles = [];
+            score = 0;
+            gameSpeed = 2;
+            obstacleSpawnTimer = 0;
             
-            obstacles.push({x: 150, y: 100, width: 40, height: 40, type: 'spike', speedY: 2});
-            
-            rings.push({x: 150, y: 370, radius: 12, collected: false});
-            rings.push({x: 350, y: 320, radius: 12, collected: false});
-            
-            goal = {x: canvas.width - 80, y: 200, width: 60, height: 60};
+            updateDisplays();
         }
 
         function updateDisplays() {
-            document.getElementById('score-display').textContent = `Score: ${score}`;
-            document.getElementById('level-display').textContent = `Level: ${level}`;
+            scoreDisplay.textContent = `Score: ${score}`;
+            highScoreDisplay.textContent = `Best: ${highScore}`;
         }
 
+        // Main game loop
         function gameLoop() {
             if (!gameRunning) return;
             
+            // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
             drawBackground();
+            
+            // Update game state
             updateBall();
             updateObstacles();
-            drawPlatforms();
+            updateParticles();
+            
+            // Draw game objects
             drawObstacles();
-            drawRings();
-            drawGoal();
+            drawParticles();
             drawBall();
             
-            checkPlatformCollisions();
-            checkObstacleCollisions();
-            checkRingCollisions();
-            checkGoalCollision();
+            // Check collisions
+            checkCollisions();
             
-            if (ball.y > canvas.height) gameOver();
-            else requestAnimationFrame(gameLoop);
+            // Increase difficulty over time
+            gameSpeed = 2 + Math.floor(score / 500);
+            
+            // Continue game loop
+            requestAnimationFrame(gameLoop);
         }
 
         function drawBackground() {
+            // Gradient background
             const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#0a0e29'); gradient.addColorStop(1, '#1a1f4b');
-            ctx.fillStyle = gradient; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#0a0e29');
+            gradient.addColorStop(1, '#1a1f4b');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Grid pattern
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            
+            // Vertical lines
+            for (let x = 0; x < canvas.width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            // Horizontal lines
+            for (let y = 0; y < canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
         }
 
         function updateBall() {
-            ball.speedY += gravity;
-            ball.speedX *= 0.9;
-            if (keys['ArrowLeft'] || keys['a']) ball.speedX = -5;
-            if (keys['ArrowRight'] || keys['d']) ball.speedX = 5;
-            ball.x += ball.speedX; ball.y += ball.speedY;
-            if (ball.x - ball.radius < 0) ball.x = ball.radius;
-            if (ball.x + ball.radius > canvas.width) ball.x = canvas.width - ball.radius;
+            // Apply gravity (falling down)
+            ball.speedY += 0.1;
+            
+            // Handle controls
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                ball.speedX = -5;
+            } else if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                ball.speedX = 5;
+            } else {
+                ball.speedX *= 0.9; // Friction
+            }
+            
+            // Update position
+            ball.x += ball.speedX;
+            ball.y += ball.speedY;
+            
+            // Boundary checks
+            if (ball.x - ball.radius < 0) {
+                ball.x = ball.radius;
+                ball.speedX *= -0.5;
+            }
+            if (ball.x + ball.radius > canvas.width) {
+                ball.x = canvas.width - ball.radius;
+                ball.speedX *= -0.5;
+            }
+            
+            // Score increases as you survive longer
+            score += 1;
+            updateDisplays();
         }
 
         function updateObstacles() {
-            obstacles.forEach(obstacle => {
-                obstacle.y += obstacle.speedY;
-                if (obstacle.y > canvas.height) {
-                    obstacle.y = -50;
-                    obstacle.x = Math.random() * (canvas.width - obstacle.width);
+            // Spawn new obstacles
+            obstacleSpawnTimer++;
+            if (obstacleSpawnTimer > 60 - gameSpeed * 5) {
+                spawnObstacle();
+                obstacleSpawnTimer = 0;
+            }
+            
+            // Update existing obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obstacle = obstacles[i];
+                
+                // Move obstacle down
+                obstacle.y += gameSpeed;
+                
+                // Remove if off screen
+                if (obstacle.y > canvas.height + 100) {
+                    obstacles.splice(i, 1);
                 }
-            });
+            }
         }
 
-        function drawBall() {
-            ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-            const gradient = ctx.createRadialGradient(ball.x-5, ball.y-5, 1, ball.x, ball.y, ball.radius);
-            gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(0.5, ball.color); gradient.addColorStop(1, '#1a5a92');
-            ctx.fillStyle = gradient; ctx.fill();
+        function spawnObstacle() {
+            const types = ['circle', 'rectangle', 'triangle'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            
+            const obstacle = {
+                x: Math.random() * (canvas.width - 100) + 50,
+                y: -50,
+                width: 40 + Math.random() * 60,
+                height: 40 + Math.random() * 60,
+                type: type,
+                color: getRandomColor()
+            };
+            
+            obstacles.push(obstacle);
         }
 
-        function drawPlatforms() {
-            ctx.fillStyle = '#3a7bd5';
-            platforms.forEach(platform => ctx.fillRect(platform.x, platform.y, platform.width, platform.height));
+        function getRandomColor() {
+            const colors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'];
+            return colors[Math.floor(Math.random() * colors.length)];
         }
 
         function drawObstacles() {
             obstacles.forEach(obstacle => {
-                ctx.fillStyle = '#e74c3c';
-                ctx.beginPath();
-                ctx.moveTo(obstacle.x, obstacle.y + obstacle.height);
-                ctx.lineTo(obstacle.x + obstacle.width / 2, obstacle.y);
-                ctx.lineTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height);
-                ctx.closePath(); ctx.fill();
-            });
-        }
-
-        function drawRings() {
-            rings.forEach(ring => {
-                if (!ring.collected) {
-                    ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 3;
-                    ctx.beginPath(); ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2); ctx.stroke();
+                ctx.fillStyle = obstacle.color;
+                
+                switch (obstacle.type) {
+                    case 'circle':
+                        ctx.beginPath();
+                        ctx.arc(obstacle.x, obstacle.y, obstacle.width / 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                        
+                    case 'rectangle':
+                        ctx.fillRect(
+                            obstacle.x - obstacle.width / 2,
+                            obstacle.y - obstacle.height / 2,
+                            obstacle.width,
+                            obstacle.height
+                        );
+                        break;
+                        
+                    case 'triangle':
+                        ctx.beginPath();
+                        ctx.moveTo(obstacle.x, obstacle.y - obstacle.height / 2);
+                        ctx.lineTo(obstacle.x - obstacle.width / 2, obstacle.y + obstacle.height / 2);
+                        ctx.lineTo(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
+                        ctx.closePath();
+                        ctx.fill();
+                        break;
                 }
+                
+                // Add glow effect
+                ctx.shadowColor = obstacle.color;
+                ctx.shadowBlur = 20;
+                ctx.fill();
+                ctx.shadowBlur = 0;
             });
         }
 
-        function drawGoal() {
-            ctx.fillStyle = '#2ecc71';
-            ctx.fillRect(goal.x, goal.y, goal.width, goal.height);
-            ctx.fillStyle = 'white'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
-            ctx.fillText('GOAL', goal.x + goal.width/2, goal.y + goal.height/2 + 5);
+        function drawBall() {
+            // Ball shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y + 5, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Main ball
+            const gradient = ctx.createRadialGradient(
+                ball.x - 5, ball.y - 5, 1,
+                ball.x, ball.y, ball.radius
+            );
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.5, ball.color);
+            gradient.addColorStop(1, '#1a5a92');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Ball highlight
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(ball.x - 5, ball.y - 5, ball.radius / 3, 0, Math.PI * 2);
+            ctx.fill();
         }
 
-        function checkPlatformCollisions() {
-            let onPlatform = false;
-            platforms.forEach(platform => {
-                if (ball.x + ball.radius > platform.x && ball.x - ball.radius < platform.x + platform.width &&
-                    ball.y + ball.radius > platform.y && ball.y - ball.radius < platform.y + platform.height && ball.speedY > 0) {
-                    ball.y = platform.y - ball.radius; ball.speedY = 0; onPlatform = true;
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.alpha -= 0.02;
+                
+                if (particle.alpha <= 0) {
+                    particles.splice(i, 1);
                 }
-            });
-            if (!onPlatform && ball.speedY === 0) ball.speedY = 0.1;
-        }
-
-        function checkObstacleCollisions() {
-            obstacles.forEach(obstacle => {
-                const dx = Math.abs(ball.x - (obstacle.x + obstacle.width/2));
-                const dy = Math.abs(ball.y - (obstacle.y + obstacle.height/2));
-                if (dx < obstacle.width/2 + ball.radius && dy < obstacle.height/2 + ball.radius) {
-                    gameOver();
-                }
-            });
-        }
-
-        function checkRingCollisions() {
-            rings.forEach(ring => {
-                if (!ring.collected && Math.sqrt((ball.x - ring.x) ** 2 + (ball.y - ring.y) ** 2) < ball.radius + ring.radius) {
-                    ring.collected = true; score += 50; updateDisplays();
-                }
-            });
-        }
-
-        function checkGoalCollision() {
-            if (ball.x + ball.radius > goal.x && ball.x - ball.radius < goal.x + goal.width &&
-                ball.y + ball.radius > goal.y && ball.y - ball.radius < goal.y + goal.height) {
-                levelComplete();
             }
         }
 
-        function levelComplete() {
-            gameRunning = false;
-            score += 500;
-            setTimeout(() => {
-                if (level < 3) { level++; setupLevel(); gameRunning = true; gameLoop(); }
-                else { document.getElementById('total-score').textContent = `Total Score: ${score}`;
-                      document.getElementById('win-screen').classList.remove('hidden'); }
-            }, 1000);
+        function drawParticles() {
+            particles.forEach(particle => {
+                ctx.globalAlpha = particle.alpha;
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        function createParticles(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    radius: Math.random() * 3 + 1,
+                    color: color,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    alpha: 1
+                });
+            }
+        }
+
+        function checkCollisions() {
+            // Check if ball hits bottom
+            if (ball.y + ball.radius > canvas.height) {
+                createParticles(ball.x, ball.y, ball.color, 20);
+                gameOver();
+                return;
+            }
+            
+            // Check collisions with obstacles
+            for (let i = 0; i < obstacles.length; i++) {
+                const obstacle = obstacles[i];
+                let collision = false;
+                
+                switch (obstacle.type) {
+                    case 'circle':
+                        const dx = ball.x - obstacle.x;
+                        const dy = ball.y - obstacle.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        collision = distance < ball.radius + obstacle.width / 2;
+                        break;
+                        
+                    case 'rectangle':
+                        collision = (
+                            ball.x + ball.radius > obstacle.x - obstacle.width / 2 &&
+                            ball.x - ball.radius < obstacle.x + obstacle.width / 2 &&
+                            ball.y + ball.radius > obstacle.y - obstacle.height / 2 &&
+                            ball.y - ball.radius < obstacle.y + obstacle.height / 2
+                        );
+                        break;
+                        
+                    case 'triangle':
+                        // Simplified triangle collision
+                        const triTop = obstacle.y - obstacle.height / 2;
+                        const triBottom = obstacle.y + obstacle.height / 2;
+                        const triLeft = obstacle.x - obstacle.width / 2;
+                        const triRight = obstacle.x + obstacle.width / 2;
+                        
+                        collision = (
+                            ball.y + ball.radius > triTop &&
+                            ball.x + ball.radius > triLeft &&
+                            ball.x - ball.radius < triRight &&
+                            ball.y - ball.radius < triBottom
+                        );
+                        break;
+                }
+                
+                if (collision) {
+                    createParticles(ball.x, ball.y, obstacle.color, 15);
+                    gameOver();
+                    return;
+                }
+            }
         }
 
         function gameOver() {
             gameRunning = false;
-            document.getElementById('final-score').textContent = `Your score: ${score}`;
-            document.getElementById('game-over-screen').classList.remove('hidden');
+            
+            // Update high score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('fallBallHighScore', highScore);
+                newHighScore.style.display = 'block';
+                
+                // Update leaderboard with player's score
+                leaderboard[0].score = score;
+            } else {
+                newHighScore.style.display = 'none';
+            }
+            
+            finalScore.textContent = `Your Score: ${score}`;
+            gameOverScreen.classList.remove('hidden');
         }
 
+        // Initialize the game when page loads
         window.onload = init;
     </script>
 </body>
